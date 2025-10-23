@@ -1,0 +1,54 @@
+export function base64ToUint8Array(b64) {
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+export function bufferToBase64(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
+
+export function cleanPem(pem) {
+  return pem
+    .replace(/-----BEGIN PUBLIC KEY-----/, "")
+    .replace(/-----END PUBLIC KEY-----/, "")
+    .replace(/\s+/g, "")
+}
+
+export async function decryptPrivateKeyBuffer(
+  key: string,
+  iv: Uint8Array,
+  derivedKey: CryptoKey
+): Promise<ArrayBuffer> {
+    const encryptedKeyBuffer = base64ToUint8Array(key)
+    const ivBuffer = iv
+    return await crypto.subtle.decrypt(
+        {
+        name: "AES-GCM",
+        iv: ivBuffer
+        }, 
+        derivedKey, 
+        encryptedKeyBuffer
+    )
+}
+
+export async function deriveKeyForDecryption(password: string, salt: Uint8Array) {
+    const encoder = new TextEncoder()
+    const passwordKey = await crypto.subtle.importKey(
+        "raw",
+        encoder.encode(password),
+        { name: "PBKDF2" },
+        false,
+        ["deriveKey"]
+    )
+    return await crypto.subtle.deriveKey(
+        {
+            name: "PBKDF2",
+            salt, 
+            iterations: 100000,
+            hash: "SHA-256"
+        },
+        passwordKey,
+        { name: "AES-GCM", length: 256 },
+        false,
+        ["decrypt"]
+    )
+}

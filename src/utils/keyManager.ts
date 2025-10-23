@@ -1,5 +1,5 @@
-import { deriveKeyFromPassword } from "./passwordCrypto"
-import { base64ToUint8Array } from "./helpers"
+import { deriveKeyForKeyBundle } from "./passwordCrypto"
+import { base64ToUint8Array, cleanPem, decryptPrivateKeyBuffer, deriveKeyForDecryption } from "./helpers"
 
 export async function generateKeyPair() {
     return await crypto.subtle.generateKey(
@@ -13,18 +13,24 @@ export async function generateKeyPair() {
         ["encrypt", "decrypt"]
     )
 }
-export async function importPublicKey(pem: string): CryptoKey
-export async function importPrivateKey(encryptedPrivateKey: string): CryptoKey {
-    const derivedKey = deriveKeyFromPassword()
-    const decryptedPrivateKeyBuffer = await crypto.subtle.decrypt(
+export async function importPublicKey(key: string): Promise<CryptoKey> {
+    // const pemString = atob(key) // consider changing server to avoid double encoding
+    const cleaned = cleanPem(key)
+    const binaryDer = base64ToUint8Array(cleaned)
+    return crypto.subtle.importKey(
+        "spki",
+        binaryDer.buffer,
         {
-        name: "AES-GCM",
-        iv
-        }, 
-        derivedKey, 
-        encryptedPrivateKey
+            name: "RSA-OAEP",
+            hash: "SHA-256"
+        },
+        true,
+        ["encrypt"]
     )
-    return await crypto.subtle.importKey(
+}
+export async function importPrivateKeyForSigning(key: string, derivedKey, iv): Promise<CryptoKey> {
+    const decryptedPrivateKeyBuffer = await decryptPrivateKeyBuffer(key, iv, derivedKey)
+    return crypto.subtle.importKey(
         "pkcs8",
         decryptedPrivateKeyBuffer,
         {
@@ -35,9 +41,22 @@ export async function importPrivateKey(encryptedPrivateKey: string): CryptoKey {
         ["sign"]
     )
 }
+export async function importPrivateKeyForMessage(key: string, derivedKey, iv): Promise<CryptoKey> {
+    const decryptedPrivateKeyBuffer = await decryptPrivateKeyBuffer(key, iv, derivedKey)
+    return crypto.subtle.importKey(
+        "pkcs8",
+        decryptedPrivateKeyBuffer,
+        {
+        name: "RSA-OAEP",
+        hash: "SHA-256"
+        },
+        true,
+        ["decrypt"]
+    )
+}
 export async function encryptPrivateKey(privateKey, password) {
     const salt = crypto.getRandomValues(new Uint8Array(16))
-    const derivedKey = await deriveKeyFromPassword(password, salt)
+    const derivedKey = await deriveKeyForKeyBundle(password, salt)
     const privateKeyBuffer = await crypto.subtle.exportKey(
         'pkcs8',
         privateKey
@@ -54,46 +73,11 @@ export async function encryptPrivateKey(privateKey, password) {
         iv
     }
 }
-export async function decryptPrivateKey(encryptedKey: ArrayBuffer, password: string, salt: Uint8Array, iv: ArrayBuffer): CryptoKey {
-    const encoder = new TextEncoder()
-    const passwordKey = await crypto.subtle.importKey(
-        "raw",
-        encoder.encode(password),
-        { name: "PBKDF2" },
-        false,
-        ["deriveKey"]
-    )
-    const derivedKey = await crypto.subtle.deriveKey(
-        {
-            name: "PBKDF2",
-            salt, 
-            iterations: 100000,
-            hash: "SHA-256"
-        },
-        passwordKey,
-        { name: "AES-GCM", length: 256 },
-        false,
-        ["decrypt"]
-    )
-    console.log(derivedKey)
-    console.log(encryptedKey)
-    const decryptedPrivateKeyBuffer = await crypto.subtle.decrypt(
-        {
-        name: "AES-GCM",
-        iv
-        }, 
-        derivedKey, 
-        encryptedKey
-    )
-    const decryptedPrivateKey = await crypto.subtle.importKey(
-        "pkcs8",
-        decryptedPrivateKeyBuffer,
-        {
-        name: "RSASSA-PKCS1-v1_5",
-        hash: "SHA-256"
-        },
-        true,
-        ["sign"]
-    )
-    return decryptedPrivateKey
+export async function decryptPrivateKeyForSigning(encryptedKey: string, password: string, salt: Uint8Array, iv: ArrayBuffer): Promise<CryptoKey> {
+    const derivedKey = await deriveKeyForDecryption(password, salt)
+    return importPrivateKeyForSigning(encryptedKey, derivedKey, iv) 
+}
+export async function decryptPrivateKeyForMessage(encryptedKey: string, password: string, salt: Uint8Array, iv: ArrayBuffer): Promise<CryptoKey> {
+    const derivedKey = await deriveKeyForDecryption(password, salt)
+    return importPrivateKeyForMessage(encryptedKey, derivedKey, iv) 
 }

@@ -1,5 +1,6 @@
-import { encryptPrivateKey, generateKeyPair } from './keyManager'
+import { encryptPrivateKey, generateKeyPair, importPublicKey } from './keyManager'
 import { bufferToBase64 } from './helpers'
+import { encryptMessage, encryptMessageKey, generateMessageKey } from './messageCrypto'
 
 export async function prepareUserKeyBundle(password) {
     const { publicKey, privateKey } = await generateKeyPair()
@@ -8,7 +9,6 @@ export async function prepareUserKeyBundle(password) {
         publicKey
     )
     const { encryptedPrivateKey, salt, iv } = await encryptPrivateKey(privateKey, password)
-    debugger
     return {
         publicKey: bufferToBase64(publicKeyBuffer),
         encryptedPrivateKey: bufferToBase64(encryptedPrivateKey),
@@ -16,5 +16,17 @@ export async function prepareUserKeyBundle(password) {
         iv: bufferToBase64(iv)
     }
 }
-export async function encryptAndSendMessage(message: string, serverPublicKey: CryptoKey): { encryptedMessage, encryptedKey }
-export async function receiveAndDecryptMessage(encryptedMessage: ArrayBuffer, encryptedKey: ArrayBuffer, userPassword: string): string
+export async function encryptMessageForSend(message: string, serverPublicKeyB64: string, clientPublicKeyB64: string): Promise<{ encryptedMessage, encryptedKeyServer, encryptedKeyClient }> {
+    const serverPublicKey = await importPublicKey(serverPublicKeyB64)
+    const clientPublicKey = await importPublicKey(clientPublicKeyB64)
+    const messageKey = await generateMessageKey()
+    const encryptedMessage = await encryptMessage(message, messageKey)
+    const encryptedKeyServer = await encryptMessageKey(messageKey, serverPublicKey)
+    const encryptedKeyClient = await encryptMessageKey(messageKey, clientPublicKey)
+    return {
+        encryptedMessage, 
+        encryptedKeyServer,
+        encryptedKeyClient
+    }
+}
+export async function decryptMessageOnReceive(encryptedMessage: ArrayBuffer, encryptedKey: ArrayBuffer, userPassword: string): string

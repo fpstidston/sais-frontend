@@ -1,5 +1,4 @@
-// passwordCrypto.ts
-export async function deriveKeyFromPassword(password: string, salt: Uint8Array): CryptoKey {
+export async function deriveKeyForKeyBundle(password: string, salt: Uint8Array): Promise<CryptoKey> {
     const encoder = new TextEncoder()
     const passwordKey = await crypto.subtle.importKey(
         "raw", 
@@ -23,8 +22,7 @@ export async function deriveKeyFromPassword(password: string, salt: Uint8Array):
         true,
         ["encrypt", "decrypt"]
     )
-    console.log(derivedKey)
     return derivedKey
 }
-export async function encryptWithDerivedKey(data: ArrayBuffer, key: CryptoKey, iv: Uint8Array): ArrayBuffer
-export async function decryptWithDerivedKey(encrypted: ArrayBuffer, key: CryptoKey, iv: Uint8Array): ArrayBuffer
+// export async function encryptWithDerivedKey(data: ArrayBuffer, key: CryptoKey, iv: Uint8Array): ArrayBuffer
+// export async function decryptWithDerivedKey(encrypted: ArrayBuffer, key: CryptoKey, iv: Uint8Array): ArrayBuffer

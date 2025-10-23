@@ -1,20 +1,34 @@
 <script setup>
 import axios from 'axios';
-import { ref } from 'vue';
-import { prepareUserKeyBundle } from './utils/flows';
-import { decryptPrivateKey } from './utils/keyManager';
+import { ref, computed } from 'vue';
+import { prepareUserKeyBundle, encryptMessageForSend } from './utils/flows';
+import { importPublicKey, decryptPrivateKeyForMessage } from './utils/keyManager';
 import { base64ToUint8Array, bufferToBase64 } from './utils/helpers';
+import { decryptUserMessage } from './utils/messageCrypto';
+import { signChallenge } from './utils/signature'
+
 const baseURL = 'http://localhost:5000'
-const email = defineModel('email', { required: true })
-const password = defineModel('password', { required: true })
+const email = defineModel('email', { required: true, default: 'fpstidston@proton.me' })
+const password = defineModel('password', { required: true, default: 'test' })
+const message = defineModel('message', { required: true })
 const formBusy = ref(false)
 const isLoggedIn = ref(false)
 const hasEnteredEmail = ref(false)
-let publicKey
-let encryptedPrivateKey
+const messages = ref([])
+const responses = ref([])
+let publicKeyB64
+let serverPublicKeyB64
+let encryptedPrivateKeyB64
+let decryptedPrivateKey
 let salt
 let challenge
 let iv
+
+const conversation = computed({
+  get() {
+    return [...messages.value, ...responses.value].sort((a, b) => a.datetime - b.datetime)
+  }
+})
 
 const handleSignup = async () => {
   if (!email.value) return
@@ -52,8 +66,8 @@ const handleLoginStart = () => {
   }, { withCredentials: true })
     .then(response => {
       hasEnteredEmail.value = true
-      publicKey = response.data.publicKey
-      encryptedPrivateKey = base64ToUint8Array(response.data.encrypted_private_key)
+      publicKeyB64 = response.data.public_key
+      encryptedPrivateKeyB64 = response.data.encrypted_private_key
       salt = base64ToUint8Array(response.data.salt)
       iv = base64ToUint8Array(response.data.iv)
       challenge = response.data.challenge
@@ -68,24 +82,24 @@ const handleLoginStart = () => {
 
 const handleLoginFinish = async () => {
   formBusy.value = true
-  const decryptedPrivateKey = await decryptPrivateKey(encryptedPrivateKey, password.value, salt, iv)
-  const challengeEncoder = new TextEncoder()
-  const challengeBuffer = challengeEncoder.encode(challenge)
-  const signature = await crypto.subtle.sign(
-    {
-      name: "RSASSA-PKCS1-v1_5"
-    },
-    decryptedPrivateKey,
-    challengeBuffer
-  )
+  const signature = await signChallenge(challenge, encryptedPrivateKeyB64, password.value, salt, iv)
   axios.post(baseURL + '/user/verify-login', {
     username: email.value,
     signature: bufferToBase64(signature),
     challenge
   }, { withCredentials: true })
-    .then(response => {
+    .then(async response => {
       if (response.data.logged_in == true) {
         isLoggedIn.value = true
+        serverPublicKeyB64 = response.data.server_public_key
+        decryptedPrivateKey = await decryptPrivateKeyForMessage(encryptedPrivateKeyB64, password.value, salt, iv)
+        axios.get(baseURL + '/message/list', { withCredentials: true })
+          .then(async response => {
+            messages.value = await decryptMessages(response.data.messages)
+          })
+          .catch(err => {
+            console.log('Error loading messages', err)
+          }) 
       } else {
         console.log('Error logging in')
       }
@@ -98,6 +112,38 @@ const handleLoginFinish = async () => {
     })
 }
 
+const handleSend = async () => {
+  formBusy.value = true
+  const { encryptedMessage, encryptedKeyClient, encryptedKeyServer } = await encryptMessageForSend(message.value, serverPublicKeyB64, publicKeyB64)
+  console.log(encryptedMessage)
+  axios.post(baseURL + '/message/create', {
+    encrypted_key_server: bufferToBase64(encryptedKeyServer),
+    encrypted_key_client: bufferToBase64(encryptedKeyClient),
+    encrypted_message: bufferToBase64(encryptedMessage.ciphertext),
+    iv: bufferToBase64(encryptedMessage.iv)
+  }, { withCredentials: true })
+    .then(() => {
+      message.value = ''
+    })
+    .catch(err => {
+      console.log('Error sending message')
+    })
+    .finally(() => {
+      formBusy.value = false
+    })
+}
+
+const decryptMessages = async (messages) => {
+  for(const message of messages) {
+    message.body = await decryptUserMessage(
+      message.encrypted_body,
+      message.encrypted_key_client,
+      message.iv,
+      decryptedPrivateKey
+    )
+  }
+  return messages
+}
 
 </script>
 
@@ -107,22 +153,27 @@ const handleLoginFinish = async () => {
       Please wait...
     </div>
     <template v-else>
-      <button @click="handleTest">Test</button>
       <form v-if="!isLoggedIn">
-        <h2>Sign up</h2>
+        <!-- <h2>Sign up</h2>
         <input type="email" v-model="email" />
         <input type="password" v-model="password"/>
-        <button @click="handleSignup">Sign up</button>
+        <button @click="handleSignup">Sign up</button> -->
         <h2>Log in</h2>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" />
         <input type="password" v-if="hasEnteredEmail" v-model="password"/>
         <button @click="handleLogin">Log in</button>
       </form>
-      <form v-else>
-        <label>Message</label>
-        <textarea></textarea>
-        <button @click="handleSend">Send</button>
-      </form>
+      <template v-else>
+        <form>
+          <label>Message</label>
+          <textarea v-model="message" />
+          <button @click="handleSend">Send</button>
+        </form>
+        <h2>List of messages</h2>
+        <div v-for="message in conversation">
+          {{  message.user_id == 0 ? 'Server' : 'You' }}: {{  message.body }}
+        </div>
+      </template>
       <h2>Security aims</h2>
       <ul>
         <li>Zero-knowledge hyrbid encyption messaging
@@ -131,24 +182,30 @@ const handleLoginFinish = async () => {
             <li>✓ User password is used to genereate a strong key</li>
             <li>✓ Strong key is used to encrypt the private key</li>
             <li>✓ Server receives and stores public key, and encrypted private key</li>
-            <li>User writes and encrypts a message using a new message key</li>
-            <li>User message key is encrypted with server's public key</li>
-            <li>Server receives encrypted message and encrypted key</li>
-            <li>Server decrypts message key using its private key</li>        
-            <li>Server genereates a reply and a new message key</li>
-            <li>Server encrypts reply with the message key</li>
-            <li>Server encrypts the message key with the user's public key</li>
-            <li>User decrypts their private key using their password</li>
-            <li>User decrypts the message key using their private key</li>
-            <li>User decrypts the message using the message key</li>
+            <li>✓ User signs a challenge using their private key</li>
+            <li>✓ Server uses users public_key to verify the signature</li>
+            <li>✓ User writes and encrypts a message using a new message key</li>
+            <li>✓ User message key is encrypted using server and client public keys</li>
+            <li>✓ Server receives encrypted message and encrypted keys</li>
+            <li>✓ Server decrypts message key using its private key</li>        
+            <li>✓ Server generates a reply and a new message key</li>
+            <li>✓ Server encrypts reply with the message key</li>
+            <li>✓ Server encrypts the message key using server and client public keys</li>
+            <li>✓ User decrypts their private key using their password</li>
+            <li>✓ User signs challenge from server using private key</li>
+            <li>✓ User decrypts the message key using their private key</li>
+            <li>✓ User decrypts the message using the message key</li>
           </ul>
+        </li>
+        <li>
+          Encrypted databases at rest
         </li>
         <li>Anonymised conversations
           <ul>
-            <li>The message database links to the identity service only by uuid (or token)</li>
+            <li>✓ The message database links to the identity service only by uuid (or token)</li>
             <li>Meta data is stripped</li>
-            <li>Separate identity storage</li>
-            <li>Internally split API module routing</li>
+            <li>✓ Separate identity storage</li>
+            <li>✓ Internally split API module routing</li>
             <li>Tighter access controls on the idenitity database</li>
             <li>The user's email or phone is stored tokenised</li>
           </ul>
