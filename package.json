@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "axios": "^1.12.2",
+    "marked": "^16.4.1",
     "ssh-keygen": "^0.5.0",
     "vue": "^3.5.22"
   },

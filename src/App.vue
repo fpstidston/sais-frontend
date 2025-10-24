@@ -6,6 +6,7 @@ import { importPublicKey, decryptPrivateKeyForMessage } from './utils/keyManager
 import { base64ToUint8Array, bufferToBase64 } from './utils/helpers';
 import { decryptUserMessage } from './utils/messageCrypto';
 import { signChallenge } from './utils/signature'
+import { marked } from 'marked'
 
 const baseURL = 'http://localhost:5000'
 const email = defineModel('email', { required: true, default: 'fpstidston@proton.me' })
@@ -26,7 +27,7 @@ let iv
 
 const conversation = computed({
   get() {
-    return [...messages.value, ...responses.value].sort((a, b) => a.datetime - b.datetime)
+    return [...messages.value, ...responses.value].sort((a, b) => a.datetime - b.datetime).reverse()
   }
 })
 
@@ -115,15 +116,29 @@ const handleLoginFinish = async () => {
 const handleSend = async () => {
   formBusy.value = true
   const { encryptedMessage, encryptedKeyClient, encryptedKeyServer } = await encryptMessageForSend(message.value, serverPublicKeyB64, publicKeyB64)
-  console.log(encryptedMessage)
   axios.post(baseURL + '/message/create', {
     encrypted_key_server: bufferToBase64(encryptedKeyServer),
     encrypted_key_client: bufferToBase64(encryptedKeyClient),
     encrypted_message: bufferToBase64(encryptedMessage.ciphertext),
     iv: bufferToBase64(encryptedMessage.iv)
   }, { withCredentials: true })
-    .then(() => {
+    .then(async response => {
+      messages.value.push({
+        sender: 'You',
+        body: message.value,
+        datetime: new Date().toUTCString()
+      })
       message.value = ''
+      console.log(response.data.response)
+      debugger
+      const encrpytedReply = response.data.response
+      const replies = await decryptMessages([encrpytedReply])
+      const reply = replies[0]
+      responses.value.push({
+        sender: 'Server',
+        body: reply.body,
+        datetime: new Date().toUTCString()
+      })
     })
     .catch(err => {
       console.log('Error sending message')
@@ -154,10 +169,10 @@ const decryptMessages = async (messages) => {
     </div>
     <template v-else>
       <form v-if="!isLoggedIn">
-        <!-- <h2>Sign up</h2>
+        <h2>Sign up</h2>
         <input type="email" v-model="email" />
         <input type="password" v-model="password"/>
-        <button @click="handleSignup">Sign up</button> -->
+        <button @click="handleSignup">Sign up</button>
         <h2>Log in</h2>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" />
         <input type="password" v-if="hasEnteredEmail" v-model="password"/>
@@ -170,8 +185,10 @@ const decryptMessages = async (messages) => {
           <button @click="handleSend">Send</button>
         </form>
         <h2>List of messages</h2>
-        <div v-for="message in conversation">
-          {{  message.user_id == 0 ? 'Server' : 'You' }}: {{  message.body }}
+        <div class="message" v-for="message in conversation">
+          <span class="date">{{ message.datetime }}</span>
+          <div class="sender"><strong>{{  message.sender }}</strong></div>
+          <div v-html="marked.parse(message.body)" />
         </div>
       </template>
       <h2>Security aims</h2>
@@ -198,21 +215,19 @@ const decryptMessages = async (messages) => {
           </ul>
         </li>
         <li>
-          Encrypted databases at rest
-        </li>
-        <li>Anonymised conversations
+          Data security at rest (order: 1)
           <ul>
-            <li>✓ The message database links to the identity service only by uuid (or token)</li>
-            <li>Meta data is stripped</li>
+            <li>✓ The message database links to the identity service only by uuid</li>
+            <li>The message database links to the identity service only by token (order: 4)</li>
+            <li>The user's email is stored tokenised and hashed (order: 3)</li>
+            <li>Meta data is stripped  (order: 5)</li>
             <li>✓ Separate identity storage</li>
-            <li>✓ Internally split API module routing</li>
-            <li>Tighter access controls on the idenitity database</li>
-            <li>The user's email or phone is stored tokenised</li>
+            <li>✓ Internally split API routing</li>
+            <li>Tighter access controls on the idenitity database (order: 2)</li>
           </ul>
         </li>
         <li>Strong multi-factor authentication (optional)
           <ul>
-            <li>Create user account</li>
             <li>Generate encrypted 160-bit base32 encoded secret</li>
             <li>Store it encrpyted at rest</li>
             <li>Display the secret as a QR code to client</li>
@@ -226,3 +241,13 @@ const decryptMessages = async (messages) => {
     </template>
   </div>
 </template>
+
+<style scoped>
+.date {
+  font-size: small;
+}
+.message {
+  box-sizing: border-box;
+  margin: 4rem 0;
+}
+</style>
