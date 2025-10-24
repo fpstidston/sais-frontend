@@ -14,6 +14,7 @@ const password = defineModel('password', { required: true, default: 'test' })
 const message = defineModel('message', { required: true })
 const formBusy = ref(false)
 const isLoggedIn = ref(false)
+const isLoading = ref(false)
 const hasEnteredEmail = ref(false)
 const messages = ref([])
 const responses = ref([])
@@ -114,7 +115,7 @@ const handleLoginFinish = async () => {
 }
 
 const handleSend = async () => {
-  formBusy.value = true
+  isLoading.value = true
   const { encryptedMessage, encryptedKeyClient, encryptedKeyServer } = await encryptMessageForSend(message.value, serverPublicKeyB64, publicKeyB64)
   axios.post(baseURL + '/message/create', {
     encrypted_key_server: bufferToBase64(encryptedKeyServer),
@@ -144,7 +145,7 @@ const handleSend = async () => {
       console.log('Error sending message')
     })
     .finally(() => {
-      formBusy.value = false
+      isLoading.value = false
     })
 }
 
@@ -173,22 +174,24 @@ const decryptMessages = async (messages) => {
         <input type="email" v-model="email" />
         <input type="password" v-model="password"/>
         <button @click="handleSignup">Sign up</button>
-        <h2>Log in</h2>
+        <h2>{{ !hasEnteredEmail ? 'Log in' : 'Password'}}</h2>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" />
         <input type="password" v-if="hasEnteredEmail" v-model="password"/>
         <button @click="handleLogin">Log in</button>
       </form>
       <template v-else>
-        <form>
-          <label>Message</label>
-          <textarea v-model="message" />
-          <button @click="handleSend">Send</button>
+        <h2>Gemma3-4B on Ollama</h2>
+        <form id="prompt">
+          <div class="prompt-container">
+            <textarea v-model="message" :disabled="isLoading"/>
+            <button @click="handleSend" :disabled="isLoading">Send</button>
+          </div>
         </form>
-        <h2>List of messages</h2>
+        <div class="message loading" v-if="isLoading">Loading...</div>
         <div class="message" v-for="message in conversation">
           <span class="date">{{ message.datetime }}</span>
           <div class="sender"><strong>{{  message.sender }}</strong></div>
-          <div v-html="marked.parse(message.body)" />
+          <div class="body" v-html="marked.parse(message.body)" />
         </div>
       </template>
       <h2>Security aims</h2>
@@ -249,5 +252,22 @@ const decryptMessages = async (messages) => {
 .message {
   box-sizing: border-box;
   margin: 4rem 0;
+}
+.message .body {
+  padding-left: 1rem;
+  border-left: 2px solid silver
+}
+#prompt {
+  display: flex;
+  flex-direction: column;
+}
+.prompt-container {
+  display: grid;
+  grid-template-columns: 5fr 1fr;
+  gap: 10px
+}
+
+.prompt-container :disabled {
+  opacity: 0.5;
 }
 </style>
