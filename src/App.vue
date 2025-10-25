@@ -192,7 +192,9 @@ const decryptMessages = async (messages) => {
       Please wait...
     </div>
     <template v-else>
-      <p v-if="!isLoggedIn">This page aims to demonstrate a kind of messaging where the server isn't trusted by the client so it stores each message encrpyted in a way it can't unlock without one-off user consents.</p>
+      <div v-if="!isLoggedIn">
+        <p class="lead" v-if="!isLoggedIn">This page aims to demonstrate encrypted messaging where servers are minimally trusted by clients.</p> 
+      </div>
       <form v-if="!isLoggedIn && !showLogin">
         <h2>Create account</h2>
         <input type="email" v-model="email" />
@@ -229,13 +231,41 @@ const decryptMessages = async (messages) => {
     <aside>
       <div>
         <h2>Read about privacy</h2>
-        <div @click="showPrivacy = !showPrivacy" class="item">
+        <div class="item">
+          <h3>Accounts</h3>
+          <p @click="showAccount = !showAccount"  class="toggle">{{  showAccount ? 'Hide' : 'Show' }} the security measures</p>
+          <template v-if="showAccount">
+            <h4>Sign up and log in</h4>
+            <p>Server has zero-knowledge of user password</p>
+            <ul>
+                <li>User generates public/private key pair</li>
+                <li>User password is used to genereate a strong key</li>
+                <li>Strong key is used to encrypt the private key</li>
+                <li>Server receives and stores public key, and encrypted private key</li>
+                <li>User signs a challenge using their private key</li>
+                <li>Server uses users public_key to verify the signature</li>
+            </ul>
+            <h4>(Not started) Multi-factor login</h4>
+            <ul>
+              <li>Generate encrypted 160-bit base32 encoded secret</li>
+              <li>Store it encrpyted at rest</li>
+              <li>Display the secret as a QR code to client</li>
+              <li>Client scans QR code into FreeOTP</li>
+              <li>Server generates 6-digit code every 30 seconds</li>
+              <li>On client log in, generate a code on server to match</li>
+              <li>Log client in</li>
+            </ul>
+          </template>
+        </div>
+        <div class="item">
           <h3>Message and response</h3>
-          <p class="toggle">{{  showPrivacy ? 'Hide' : 'Show' }} the cryptography steps</p>
+          <p  @click="showPrivacy = !showPrivacy"  class="toggle">{{  showPrivacy ? 'Hide' : 'Show' }} the cryptography steps</p>
           <template v-if="showPrivacy">
+            <p>Server encryption requires authenticated, single-use, per message consents.</p>
+            <h4>Sending</h4>
             <ol>
               <li>
-                <strong>Encryption:</strong> User writes and locks a message using a unique message key
+                <strong>Encryption:</strong> User rewrites and locks a message using a unique message key
               </li>
               <li>
                 <strong>Challenge:</strong> Client generates a secret for the server to prove who they are when they get back
@@ -267,6 +297,9 @@ const decryptMessages = async (messages) => {
               <li>
                 <strong>Storage:</strong> Server stores the locked messages and the locked keys that only the client can unlock.
               </li>
+            </ol>
+            <h4>Receiving</h4>
+            <ol>
               <li>
                 <strong>(Option) Challenge:</strong> Server generates a challenge for the client including the original secret
               </li>
@@ -279,9 +312,9 @@ const decryptMessages = async (messages) => {
             </ol>
           </template>
         </div>
-        <div @click="showStorage = !showStorage" class="item">
+        <div class="item">
           <h3>Storage and retrieval</h3>
-          <p class="toggle">{{  showStorage ? 'Hide' : 'Show' }} the cryptography steps</p>
+          <p @click="showStorage = !showStorage"  class="toggle">{{  showStorage ? 'Hide' : 'Show' }} the cryptography steps</p>
           <template v-if="showStorage">
             <h4>Client-sever</h4>
             <ol>
@@ -307,32 +340,6 @@ const decryptMessages = async (messages) => {
             </ul>
           </template>
         </div>
-        <div @click="showAccount = !showAccount" class="item">
-          <h3>Account</h3>
-          <p class="toggle">{{  showAccount ? 'Hide' : 'Show' }} the security measures</p>
-          <template v-if="showAccount">
-            <h4>Sign up and log in</h4>
-            <p>Server has zero-knowledge of user password</p>
-            <ul>
-                <li>User generates public/private key pair</li>
-                <li>User password is used to genereate a strong key</li>
-                <li>Strong key is used to encrypt the private key</li>
-                <li>Server receives and stores public key, and encrypted private key</li>
-                <li>User signs a challenge using their private key</li>
-                <li>Server uses users public_key to verify the signature</li>
-            </ul>
-            <h4>(Not started) Multi-factor login</h4>
-            <ul>
-              <li>Generate encrypted 160-bit base32 encoded secret</li>
-              <li>Store it encrpyted at rest</li>
-              <li>Display the secret as a QR code to client</li>
-              <li>Client scans QR code into FreeOTP</li>
-              <li>Server generates 6-digit code every 30 seconds</li>
-              <li>On client log in, generate a code on server to match</li>
-              <li>Log client in</li>
-            </ul>
-          </template>
-        </div>
       </div>
     </aside>
   </section>
@@ -349,14 +356,17 @@ form {
   max-width: 300px;
   gap: 20px
 }
-#about .item {
+#about .item:not(:last-child) {
   border-bottom: 1px solid rgb(215, 215, 128);
-  padding-bottom: 1rem;
 }
 #about {
   padding: 0 1rem;
   border-top: 1px solid rgb(215, 215, 128);
-  border-top: 1px solid rgb(215, 215, 128);
+  border-bottom: 1px solid rgb(215, 215, 128);
+  background-color: rgb(255, 255, 228);
+  padding-bottom: 1rem;
+}
+.info {
   background-color: rgb(255, 255, 228);
 }
 .date {

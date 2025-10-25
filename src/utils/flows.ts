@@ -36,12 +36,12 @@ export async function encryptMessageForSend(message: string, decryptedPrivateKey
     const signature = bufferToBase64(signatureBuffer)
 
     const clientPublicKey = await importPublicKey(clientPublicKeyB64)
-    const warppedKeyClient = await encryptMessageKey(messageKey, clientPublicKey)
+    const wrappedKeyClient = await encryptMessageKey(messageKey, clientPublicKey)
 
     return {
         encryptedMessage, 
         wrappedKeyServer,
-        warppedKeyClient,
+        wrappedKeyClient,
         challengeString: challengeAndKeyString,
         signature,
         salt, 
