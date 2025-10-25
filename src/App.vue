@@ -183,10 +183,10 @@ const decryptMessages = async (messages) => {
     </div>
     <template v-else>
       <form v-if="!isLoggedIn">
-        <!-- <h2>Sign up</h2>
+        <h2>Sign up</h2>
         <input type="email" v-model="email" />
         <input type="password" v-model="password"/>
-        <button @click="handleSignup">Sign up</button> -->
+        <button @click="handleSignup">Sign up</button>
         <h2>{{ !hasEnteredEmail ? 'Log in' : 'Password'}}</h2>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" />
         <input type="password" v-if="hasEnteredEmail" v-model="password"/>
@@ -207,84 +207,97 @@ const decryptMessages = async (messages) => {
           <div class="body" v-html="marked.parse(message.body)" />
         </div>
       </template>
-      <h2>Security aims</h2>
-      <ul>
-        <li>Messaging v2 (Strongest alternative is to make server private key useless for decrpyting messages without a one-off user-signed challenge)
-          <ul>
-            <li>✓ User writes and encrypts a message using a new message key</li>
-            <li>✓ Client generates a challenge for the server with nonce and message id(s)</li>
-            <li>✓ Client signs the challenge using their private key</li>
-            <li>✓ Client encrypts the message key in two copies, one for its later read using its own public key and for the other...</li>
-            <li>✓ Client derives a key for the server to read using non-deterministic challenge material</li>
-            <li>✓ Client generates a single use wrapping key for the server</li>
-            <li>✓ Client wraps the server message key with the wrapping key</li>
-            <li>✓ Server verifies the signature with the clients public key</li>
-            <li>✓ Server derives wrapping key from the clients signature and challenge</li>
-            <li>✓ Server unwraps the message key and decrypts the message</li>
-            <li>Server generates a response and encrypts it with a new message key</li>
-            <li>Server wraps the message key with the clients public key</li>
-            <li>Server stores both the client's message and the server response but does not make keys for itself</li>
-            <!-- <li>Server signs the response including encrpyted message and original nonce</li>
-            <li>Client checks server's signature is valid and nonce matches</li>
-            <li>Client displays message</li> -->
-            <li>Client requests and resubmits its previous messages rewrapped with single use keys for chat context</li>
-          </ul>
-        </li>
-        <li>Messaging (Not cryptographically 'zero-knowledge', server can decrypt user messages without user consent)
-          <ul>
-            <li>✓ User writes and encrypts a message using a new message key</li>
-            <li>✓ User message key is encrypted using server and client public keys</li>
-            <li>✓ Server receives encrypted message and encrypted keys</li>
-            <li>✓ Server decrypts message key using its private key</li>        
-            <li>✓ Server generates a reply and a new message key</li>
-            <li>✓ Server encrypts reply with the message key</li>
-            <li>✓ Server encrypts the message key using server and client public keys</li>
-            <li>✓ User decrypts their private key using their password</li>
-            <li>✓ User decrypts the message key using their private key</li>
-            <li>✓ User decrypts the message using the message key</li>
-          </ul>
-        </li>
-      </ul>
-      <ul>
-        <li>
-          Data security at rest (order: 1)
-          <ul>
-            <li>✓ The message database links to the identity service only by uuid</li>
-            <li>The message database links to the identity service only by token (order: 4)</li>
-            <li>The user's email is stored tokenised and hashed (order: 3)</li>
-            <li>Meta data is stripped  (order: 5)</li>
-            <li>✓ Separate identity storage</li>
-            <li>✓ Internally split API routing</li>
-            <li>Tighter access controls on the idenitity database (order: 2)</li>
-          </ul>
-        </li>
-        <li>Sign up and log in (Zero-knowledge, server has no sight of user password)
-          <ul>
+      <div class="about">
+        <h2>Security steps</h2>
+        <h3>Messaging</h3>
+        <h4>1. Encrpytion</h4>
+        <p>User writes and locks a message using a unique message key</p>
+        <h4>2. Challenge</h4>
+        <p>Client generates a secret for the server</p>
+        <h4>3. Signature</h4>
+        <p>Client includes proof the secret came from them</p>
+        <h4>4. Wrapping</h4>
+        <p>Client creates two copies of the message key and locks them,</p>
+        <ul>
+          <li>One using its own key, for the user to download messages and unlock later</li>
+          <li>One using a temporary key, that the server will have to recut for itself</li>
+        </ul>
+        <p>Temporary key contains a random number and the secret that's proven to be from the client</p>
+        <h4>5. Verification</h4>
+        <p>Server can check the proof that the secret is from the client</p>
+        <h4>6. Derivation</h4>
+        <p>Server cuts a temporary key using instructions in the secret that's proven to be from the client</p>
+        <h4>7. Unwrapping</h4>
+        <p>Server uses temporary key to unlock the message key</p>
+        <h4>8. Decryption</h4>
+        <p>Server decrpyts the user's message and generates a reply</p>
+        <h4>9. Encryption</h4>
+        <p>Server locks the reply using a unique message key</p>
+        <h4>10. Wrapping</h4>
+        <p>Server locks the message key so only the client can unlock it. Server no longer has a way to open the message.</p>
+        <h4>11. Storage</h4>
+        <p>Server stores the locked messages and the locked keys that only the client can unlock.</p>
+        <h4>12. (Incomplete) Challenge</h4>
+        <p>Server generates a challenge for the client including the original secret</p>
+        <h4>13. (Incomplete) Signature </h4>
+        <p>Server includes proof the secret came from them and sends it</p>
+        <h4>14. (Incomplete) Verification</h4>
+        <p>Client checks for the original secret and the proof it came from the server</p>
+        <h3>Recall</h3>
+        <h4>Client</h4>
+        <p>1. Client requests their locked messages, each with its own locked key that only the client can unlock</p>
+        <p>2. Client unlocks their message keys and uses these to unlock each message</p>
+        <h4>Server</h4>
+        <p>1. (Incomplete) Client relocks their downloaded messages using a message key</p>
+        <p>2. (Incomplete) Client creates a new temporary key, challenge (secret) and singature (proof) as before</p>
+        <p>3. (Incomplete) Client locks the message key using the temporary key</p>
+        <p>4. (Incomplete) Server verifies, derives, unwraps, decrpyts and uses as before, with no retention</p>
+        <h3>At rest</h3>
+        <ul>
+          <li>The message database links to the identity service only by uuid</li>
+          <li>(Incomplete) The message database links to the identity service only by token (order: 4)</li>
+          <li>(Incomplete) The user's email is stored tokenised and hashed (order: 3)</li>
+          <li>(Incomplete) Meta data is stripped  (order: 5)</li>
+          <li>Separate identity storage</li>
+          <li>Internally split API routing</li>
+          <li>(Incomplete) Tighter access controls on the idenitity database (order: 2)</li>
+        </ul>
+        <h3>Account management</h3>
+        <h4>Sign up and log in</h4>
+        <p>Server has zero-knowledge of user password</p>
+        <ul>
             <li>✓ User generates public/private key pair</li>
             <li>✓ User password is used to genereate a strong key</li>
             <li>✓ Strong key is used to encrypt the private key</li>
             <li>✓ Server receives and stores public key, and encrypted private key</li>
             <li>✓ User signs a challenge using their private key</li>
             <li>✓ Server uses users public_key to verify the signature</li>
-          </ul>
-        </li>
-        <li>Strong multi-factor authentication (optional)
-          <ul>
-            <li>Generate encrypted 160-bit base32 encoded secret</li>
-            <li>Store it encrpyted at rest</li>
-            <li>Display the secret as a QR code to client</li>
-            <li>Client scans QR code into FreeOTP</li>
-            <li>Server generates 6-digit code every 30 seconds</li>
-            <li>On client log in, generate a code on server to match</li>
-            <li>Log client in</li>
-          </ul>
-        </li>
-      </ul>
+        </ul>
+        <h4>Multi-factor login</h4>
+        <ul>
+          <li>Generate encrypted 160-bit base32 encoded secret</li>
+          <li>Store it encrpyted at rest</li>
+          <li>Display the secret as a QR code to client</li>
+          <li>Client scans QR code into FreeOTP</li>
+          <li>Server generates 6-digit code every 30 seconds</li>
+          <li>On client log in, generate a code on server to match</li>
+          <li>Log client in</li>
+        </ul>
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
+h3 {
+  margin-top: 3rem;
+}
+h4 {
+  margin-bottom: 0;
+}
+.about p {
+  margin: 0;
+}
 .date {
   font-size: small;
 }
