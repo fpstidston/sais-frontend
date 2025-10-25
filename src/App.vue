@@ -21,7 +21,8 @@ const responses = ref([])
 let publicKeyB64
 let serverPublicKeyB64
 let encryptedPrivateKeyB64
-let decryptedPrivateKey
+let decryptedPrivateKeyForSigning
+let decryptedPrivateKeyForMessaging
 let salt
 let challenge
 let iv
@@ -94,7 +95,8 @@ const handleLoginFinish = async () => {
       if (response.data.logged_in == true) {
         isLoggedIn.value = true
         serverPublicKeyB64 = response.data.server_public_key
-        decryptedPrivateKey = await decryptPrivateKeyForSigning(encryptedPrivateKeyB64, password.value, salt, iv)
+        decryptedPrivateKeyForSigning = await decryptPrivateKeyForSigning(encryptedPrivateKeyB64, password.value, salt, iv)
+        decryptedPrivateKeyForMessaging = await decryptPrivateKeyForMessage(encryptedPrivateKeyB64, password.value, salt, iv)
         axios.get(baseURL + '/message/list', { withCredentials: true })
           .then(async response => {
             messages.value = await decryptMessages(response.data.messages)
@@ -119,16 +121,16 @@ const handleSend = async () => {
   isLoading.value = true
   const {
     encryptedMessage,
-    encryptedKeyClient,
+    warppedKeyClient,
     wrappedKeyServer,
     challengeString,
     signature,
     salt,
     iv_wrap
-  } = await encryptMessageForSend(message.value, decryptedPrivateKey, publicKeyB64)
+  } = await encryptMessageForSend(message.value, decryptedPrivateKeyForSigning, publicKeyB64)
   axios.post(baseURL + '/message/create', {
     wrapped_key_server: bufferToBase64(wrappedKeyServer),
-    encrypted_key_client: bufferToBase64(encryptedKeyClient),
+    wrapped_key_client: bufferToBase64(warppedKeyClient),
     encrypted_message: bufferToBase64(encryptedMessage.ciphertext),
     salt: bufferToBase64(salt),
     iv: bufferToBase64(encryptedMessage.iv),
@@ -136,24 +138,22 @@ const handleSend = async () => {
     signature,
     challenge_string: challengeString
   }, { withCredentials: true })
-    // .then(async response => {
-      // messages.value.push({
-      //   sender: 'You',
-      //   body: message.value,
-      //   datetime: new Date().toUTCString()
-      // })
-      // message.value = ''
-      // console.log(response.data.response)
-      // debugger
-      // const encrpytedReply = response.data.response
-      // const replies = await decryptMessages([encrpytedReply])
-      // const reply = replies[0]
-      // responses.value.push({
-      //   sender: 'Server',
-      //   body: reply.body,
-      //   datetime: new Date().toUTCString()
-      // })
-    // })
+    .then(async response => {
+      messages.value.push({
+        sender: 'You',
+        body: message.value,
+        datetime: new Date().toUTCString()
+      })
+      message.value = ''
+      const encrpytedReply = response.data.response
+      const replies = await decryptMessages([encrpytedReply])
+      const reply = replies[0]
+      responses.value.push({
+        sender: 'Server',
+        body: reply.body,
+        datetime: new Date().toUTCString()
+      })
+    })
     .catch(err => {
       console.log('Error sending message')
     })
@@ -166,9 +166,9 @@ const decryptMessages = async (messages) => {
   for(const message of messages) {
     message.body = await decryptUserMessage(
       message.encrypted_body,
-      message.encrypted_key_client,
+      message.wrapped_key_client,
       message.iv,
-      decryptedPrivateKey
+      decryptedPrivateKeyForMessaging
     )
   }
   return messages
@@ -213,17 +213,21 @@ const decryptMessages = async (messages) => {
           <ul>
             <li>✓ User writes and encrypts a message using a new message key</li>
             <li>✓ Client generates a challenge for the server with nonce and message id(s)</li>
+            <li>✓ Client signs the challenge using their private key</li>
             <li>✓ Client encrypts the message key in two copies, one for its later read using its own public key and for the other...</li>
             <li>✓ Client derives a key for the server to read using non-deterministic challenge material</li>
-            <li>✓ Client signs the challenge using their private key</li>
-            <li>✓ Client generates a single use wrapping key (k_wrap) for the server</li>
+            <li>✓ Client generates a single use wrapping key for the server</li>
             <li>✓ Client wraps the server message key with the wrapping key</li>
             <li>✓ Server verifies the signature with the clients public key</li>
-            <li>Server derives wrapping key from the clients challenge and message id</li>
-            <li>Server unwraps the message key and decrypts the message</li>
-            <li>Server signs the response including encrpyted message and original nonce</li>
+            <li>✓ Server derives wrapping key from the clients signature and challenge</li>
+            <li>✓ Server unwraps the message key and decrypts the message</li>
+            <li>Server generates a response and encrypts it with a new message key</li>
+            <li>Server wraps the message key with the clients public key</li>
+            <li>Server stores both the client's message and the server response but does not make keys for itself</li>
+            <!-- <li>Server signs the response including encrpyted message and original nonce</li>
             <li>Client checks server's signature is valid and nonce matches</li>
-            <li>Client displays message</li>
+            <li>Client displays message</li> -->
+            <li>Client requests and resubmits its previous messages rewrapped with single use keys for chat context</li>
           </ul>
         </li>
         <li>Messaging (Not cryptographically 'zero-knowledge', server can decrypt user messages without user consent)

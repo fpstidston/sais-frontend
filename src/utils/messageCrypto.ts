@@ -96,9 +96,6 @@ export function generateServerChallenge() {
 }
 export async function deriveServerWrappedKey(challengeString:string, signature: ArrayBuffer): Promise<{ wrappingKey: CryptoKey, salt: Uint8Array }> {
     const challengeHash = await crypto.subtle.digest("SHA-256", encodeUTF8(challengeString))
-    console.log(challengeString)
-    console.log(bufferToBase64(challengeHash))
-
     const signatureKey = await crypto.subtle.importKey(
         "raw",
         signature, 

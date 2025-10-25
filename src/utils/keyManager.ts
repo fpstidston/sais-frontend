@@ -38,7 +38,7 @@ export async function importPrivateKeyForSigning(key: string, derivedKey, iv): P
         hash: "SHA-256"
         },
         true,
-        ["sign"]
+        ["sign"] //could possibly merge this with the function below
     )
 }
 export async function importPrivateKeyForMessage(key: string, derivedKey, iv): Promise<CryptoKey> {
@@ -51,7 +51,7 @@ export async function importPrivateKeyForMessage(key: string, derivedKey, iv): P
         hash: "SHA-256"
         },
         true,
-        ["decrypt"]
+        ["decrypt"]  //could possibly merge this with the function above
     )
 }
 export async function encryptPrivateKey(privateKey, password) {
