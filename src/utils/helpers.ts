@@ -52,3 +52,16 @@ export async function deriveKeyForDecryption(password: string, salt: Uint8Array)
         ["decrypt"]
     )
 }
+
+export function base64encode(string: string) {
+    return btoa(string)
+}
+
+export function base64decode(string: string) {
+    return atob(string)
+}
+
+export function encodeUTF8(string: string) {
+    const encoder = new TextEncoder()
+    return encoder.encode(string)
+}

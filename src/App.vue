@@ -2,10 +2,10 @@
 import axios from 'axios';
 import { ref, computed } from 'vue';
 import { prepareUserKeyBundle, encryptMessageForSend } from './utils/flows';
-import { importPublicKey, decryptPrivateKeyForMessage } from './utils/keyManager';
+import { importPublicKey, decryptPrivateKeyForMessage, decryptPrivateKeyForSigning } from './utils/keyManager';
 import { base64ToUint8Array, bufferToBase64 } from './utils/helpers';
 import { decryptUserMessage } from './utils/messageCrypto';
-import { signChallenge } from './utils/signature'
+import { signChallengeForLogin } from './utils/signature'
 import { marked } from 'marked'
 
 const baseURL = 'http://localhost:5000'
@@ -84,7 +84,7 @@ const handleLoginStart = () => {
 
 const handleLoginFinish = async () => {
   formBusy.value = true
-  const signature = await signChallenge(challenge, encryptedPrivateKeyB64, password.value, salt, iv)
+  const signature = await signChallengeForLogin(challenge, encryptedPrivateKeyB64, password.value, salt, iv)
   axios.post(baseURL + '/user/verify-login', {
     username: email.value,
     signature: bufferToBase64(signature),
@@ -94,7 +94,7 @@ const handleLoginFinish = async () => {
       if (response.data.logged_in == true) {
         isLoggedIn.value = true
         serverPublicKeyB64 = response.data.server_public_key
-        decryptedPrivateKey = await decryptPrivateKeyForMessage(encryptedPrivateKeyB64, password.value, salt, iv)
+        decryptedPrivateKey = await decryptPrivateKeyForSigning(encryptedPrivateKeyB64, password.value, salt, iv)
         axios.get(baseURL + '/message/list', { withCredentials: true })
           .then(async response => {
             messages.value = await decryptMessages(response.data.messages)
@@ -114,33 +114,46 @@ const handleLoginFinish = async () => {
     })
 }
 
+
 const handleSend = async () => {
   isLoading.value = true
-  const { encryptedMessage, encryptedKeyClient, encryptedKeyServer } = await encryptMessageForSend(message.value, serverPublicKeyB64, publicKeyB64)
+  const {
+    encryptedMessage,
+    encryptedKeyClient,
+    wrappedKeyServer,
+    challengeString,
+    signature,
+    salt,
+    iv_wrap
+  } = await encryptMessageForSend(message.value, decryptedPrivateKey, publicKeyB64)
   axios.post(baseURL + '/message/create', {
-    encrypted_key_server: bufferToBase64(encryptedKeyServer),
+    wrapped_key_server: bufferToBase64(wrappedKeyServer),
     encrypted_key_client: bufferToBase64(encryptedKeyClient),
     encrypted_message: bufferToBase64(encryptedMessage.ciphertext),
-    iv: bufferToBase64(encryptedMessage.iv)
+    salt: bufferToBase64(salt),
+    iv: bufferToBase64(encryptedMessage.iv),
+    iv_wrap: bufferToBase64(iv_wrap),
+    signature,
+    challenge_string: challengeString
   }, { withCredentials: true })
-    .then(async response => {
-      messages.value.push({
-        sender: 'You',
-        body: message.value,
-        datetime: new Date().toUTCString()
-      })
-      message.value = ''
-      console.log(response.data.response)
-      debugger
-      const encrpytedReply = response.data.response
-      const replies = await decryptMessages([encrpytedReply])
-      const reply = replies[0]
-      responses.value.push({
-        sender: 'Server',
-        body: reply.body,
-        datetime: new Date().toUTCString()
-      })
-    })
+    // .then(async response => {
+      // messages.value.push({
+      //   sender: 'You',
+      //   body: message.value,
+      //   datetime: new Date().toUTCString()
+      // })
+      // message.value = ''
+      // console.log(response.data.response)
+      // debugger
+      // const encrpytedReply = response.data.response
+      // const replies = await decryptMessages([encrpytedReply])
+      // const reply = replies[0]
+      // responses.value.push({
+      //   sender: 'Server',
+      //   body: reply.body,
+      //   datetime: new Date().toUTCString()
+      // })
+    // })
     .catch(err => {
       console.log('Error sending message')
     })
@@ -170,10 +183,10 @@ const decryptMessages = async (messages) => {
     </div>
     <template v-else>
       <form v-if="!isLoggedIn">
-        <h2>Sign up</h2>
+        <!-- <h2>Sign up</h2>
         <input type="email" v-model="email" />
         <input type="password" v-model="password"/>
-        <button @click="handleSignup">Sign up</button>
+        <button @click="handleSignup">Sign up</button> -->
         <h2>{{ !hasEnteredEmail ? 'Log in' : 'Password'}}</h2>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" />
         <input type="password" v-if="hasEnteredEmail" v-model="password"/>
@@ -196,14 +209,25 @@ const decryptMessages = async (messages) => {
       </template>
       <h2>Security aims</h2>
       <ul>
-        <li>Zero-knowledge hyrbid encyption messaging
+        <li>Messaging v2 (Strongest alternative is to make server private key useless for decrpyting messages without a one-off user-signed challenge)
           <ul>
-            <li>✓ User generates public/private key pair</li>
-            <li>✓ User password is used to genereate a strong key</li>
-            <li>✓ Strong key is used to encrypt the private key</li>
-            <li>✓ Server receives and stores public key, and encrypted private key</li>
-            <li>✓ User signs a challenge using their private key</li>
-            <li>✓ Server uses users public_key to verify the signature</li>
+            <li>✓ User writes and encrypts a message using a new message key</li>
+            <li>✓ Client generates a challenge for the server with nonce and message id(s)</li>
+            <li>✓ Client encrypts the message key in two copies, one for its later read using its own public key and for the other...</li>
+            <li>✓ Client derives a key for the server to read using non-deterministic challenge material</li>
+            <li>✓ Client signs the challenge using their private key</li>
+            <li>✓ Client generates a single use wrapping key (k_wrap) for the server</li>
+            <li>✓ Client wraps the server message key with the wrapping key</li>
+            <li>✓ Server verifies the signature with the clients public key</li>
+            <li>Server derives wrapping key from the clients challenge and message id</li>
+            <li>Server unwraps the message key and decrypts the message</li>
+            <li>Server signs the response including encrpyted message and original nonce</li>
+            <li>Client checks server's signature is valid and nonce matches</li>
+            <li>Client displays message</li>
+          </ul>
+        </li>
+        <li>Messaging (Not cryptographically 'zero-knowledge', server can decrypt user messages without user consent)
+          <ul>
             <li>✓ User writes and encrypts a message using a new message key</li>
             <li>✓ User message key is encrypted using server and client public keys</li>
             <li>✓ Server receives encrypted message and encrypted keys</li>
@@ -212,11 +236,12 @@ const decryptMessages = async (messages) => {
             <li>✓ Server encrypts reply with the message key</li>
             <li>✓ Server encrypts the message key using server and client public keys</li>
             <li>✓ User decrypts their private key using their password</li>
-            <li>✓ User signs challenge from server using private key</li>
             <li>✓ User decrypts the message key using their private key</li>
             <li>✓ User decrypts the message using the message key</li>
           </ul>
         </li>
+      </ul>
+      <ul>
         <li>
           Data security at rest (order: 1)
           <ul>
@@ -227,6 +252,16 @@ const decryptMessages = async (messages) => {
             <li>✓ Separate identity storage</li>
             <li>✓ Internally split API routing</li>
             <li>Tighter access controls on the idenitity database (order: 2)</li>
+          </ul>
+        </li>
+        <li>Sign up and log in (Zero-knowledge, server has no sight of user password)
+          <ul>
+            <li>✓ User generates public/private key pair</li>
+            <li>✓ User password is used to genereate a strong key</li>
+            <li>✓ Strong key is used to encrypt the private key</li>
+            <li>✓ Server receives and stores public key, and encrypted private key</li>
+            <li>✓ User signs a challenge using their private key</li>
+            <li>✓ Server uses users public_key to verify the signature</li>
           </ul>
         </li>
         <li>Strong multi-factor authentication (optional)
