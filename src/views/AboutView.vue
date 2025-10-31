@@ -1,6 +1,5 @@
 <script setup>
-    import Icon from '../components/Icon.vue';
-import router from '../router';
+import Icon from '../components/Icon.vue';
 </script>
 <template>
     <section id="about">
@@ -45,10 +44,10 @@ import router from '../router';
             <h3 id="encryption">
                 <span>
                     <Icon size=48 name="lock"/>
-                    Strong Encyption
+                    Strong encyption
                 </span>
             </h3>
-            <h4>Sign up and log in</h4>
+            <h4>Account and sign in</h4>
             <p>Server has zero-knowledge of user password</p>
             <ol>
                 <li>User generates public/private key pair</li>

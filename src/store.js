@@ -13,6 +13,8 @@ export const useStateStore = defineStore('state', () => {
   let iv
   const messages = ref([])
   const responses = ref([])
+  const baseURL = 'http://localhost:5000'
+// const baseURL = 'https://185.44.253.109/sais/api'
   return {
     isLoggedIn,
     publicKeyB64,
@@ -24,6 +26,7 @@ export const useStateStore = defineStore('state', () => {
     challenge,
     iv,
     messages,
-    responses
+    responses,
+    baseURL
   }
 })

@@ -10,8 +10,6 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter()
 const store = useStateStore()
-const baseURL = 'http://localhost:5000'
-// const baseURL = 'https://185.44.253.109/sais/api'
 const email = defineModel('email', { required: true, default: '' })
 const password = defineModel('password', { required: true, default: '' })
 const formBusy = ref(false)
@@ -27,7 +25,7 @@ const handleLogin = () => {
 
 const handleLoginStart = () => {
   formBusy.value = true
-  axios.post(baseURL + '/key/get-public', {
+  axios.post(store.baseURL + '/key/get-public', {
     username: email.value,
   }, { withCredentials: true })
     .then(response => {
@@ -49,7 +47,7 @@ const handleLoginStart = () => {
 const handleLoginFinish = async () => {
   formBusy.value = true
   const signature = await signChallengeForLogin(store.challenge, store.encryptedPrivateKeyB64, password.value, store.salt, store.iv)
-  axios.post(baseURL + '/user/verify-login', {
+  axios.post(store.baseURL + '/user/verify-login', {
     username: email.value,
     signature: bufferToBase64(signature),
     challenge: store.challenge

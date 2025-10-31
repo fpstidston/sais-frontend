@@ -1,5 +1,5 @@
-import { decryptPrivateKeyForSigning, exportKeyAsBase64 } from "./keyManager"
-import { bufferToBase64, encodeUTF8 } from "./helpers"
+import { decryptPrivateKeyForSigning } from "./keyManager"
+import { encodeUTF8 } from "./helpers"
 
 export async function signChallengeForLogin(
     challenge: string,

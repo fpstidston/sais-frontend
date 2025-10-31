@@ -9,8 +9,6 @@ import { marked } from 'marked';
 import Icon from '../components/Icon.vue';
 
 const store = useStateStore()
-const baseURL = 'http://localhost:5000'
-// const baseURL = 'https://185.44.253.109/sais/api'
 const message = defineModel('message', { required: true })
 const isLoading = ref(false)
 const promptRef = ref()
@@ -41,7 +39,7 @@ const handleSend = async () => {
     salt,
     iv_wrap
   } = await encryptMessageForSend(message.value, store.decryptedPrivateKeyForSigning, store.publicKeyB64)
-  axios.post(baseURL + '/message/create', {
+  axios.post(store.baseURL + '/message/create', {
     wrapped_key_server: bufferToBase64(wrappedKeyServer),
     wrapped_key_client: bufferToBase64(wrappedKeyClient),
     encrypted_message: bufferToBase64(encryptedMessage.ciphertext),
@@ -69,7 +67,7 @@ const handleSend = async () => {
       window.scrollTo(0 , 0)
     })
     .catch(err => {
-      console.log('Error sending message')
+      console.log('Error sending message', err)
     })
     .finally(() => {
       isLoading.value = false
@@ -94,7 +92,7 @@ onMounted(() => {
         promptRef.value.focus()
     }, 200)
     if (!store.isLoggedIn) return
-    axios.get(baseURL + '/message/list', { withCredentials: true })
+    axios.get(store.baseURL + '/message/list', { withCredentials: true })
         .then(async response => {
             store.messages = await decryptMessages(response.data.messages)
             window.scrollTo(0, 0)
@@ -126,7 +124,7 @@ onUnmounted(() => {
             <div>
                 <Icon name="shredder"/>
                 <p>Confidentiality policy</p>
-                <router-link :to="{ name: 'about' }">About use cases</router-link>
+                <router-link :to="{ name: 'about' }">About use-case</router-link>
             </div>
         </section>
         <div class="message loading" v-if="isLoading">Please wait...</div>
@@ -146,7 +144,6 @@ onUnmounted(() => {
 
 <style scoped>
 section.blocks {
-    /* padding: 30px; */
     display: grid;
     gap: 30px;
     margin-bottom: 2rem;

@@ -14,7 +14,7 @@ export async function generateKeyPair() {
     )
 }
 export async function importPublicKey(key: string): Promise<CryptoKey> {
-    // const pemString = atob(key) // consider changing server to avoid double encoding
+    // const pemString = atob(key) // consider updating server to avoid double encoding
     const cleaned = cleanPem(key)
     const binaryDer = base64ToUint8Array(cleaned)
     return crypto.subtle.importKey(

@@ -1,6 +1,5 @@
 import { base64ToUint8Array, bufferToBase64, encodeUTF8 } from "./helpers.ts"
 
-// messageCrypto.ts
 export async function generateMessageKey(): Promise<CryptoKey> {
     return crypto.subtle.generateKey(
         {

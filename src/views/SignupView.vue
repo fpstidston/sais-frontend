@@ -1,5 +1,38 @@
 <script setup>
-    import { RouterLink } from 'vue-router';
+    import axios from 'axios'
+    import { RouterLink, useRouter } from 'vue-router';
+    import { ref } from 'vue'
+    import { prepareUserKeyBundle } from '../utils/flows';
+    import { useStateStore } from '../store';
+
+    const router = useRouter()
+    const store = useStateStore()
+    const email = defineModel('email', { required: true, default: '' })
+    const password = defineModel('password', { required: true, default: '' })
+    const formBusy = ref(false)
+
+    const handleSignup = async () => {
+        if (!email.value) return
+        if (!password.value) return
+        formBusy.value = true
+        const { publicKey, encryptedPrivateKey, salt, iv } = await prepareUserKeyBundle(password.value)
+        axios.post(store.baseURL + '/user/create', {
+            username: email.value,
+            public_key: publicKey,
+            encrypted_private_key: encryptedPrivateKey,
+            salt,
+            iv
+        }, { withCredentials: true })
+            .then(() => {
+                router.push({ name: 'signin' })
+            })
+            .catch(err => {
+                console.log('Error creating account', err)
+            }) 
+            .finally(() => {
+                formBusy.value = false
+            })
+    }
 </script>
 
 <template>

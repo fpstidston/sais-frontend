@@ -4,6 +4,7 @@ import { useStateStore } from '../store';
 
 const store = useStateStore()
 const router = useRouter()
+
 const handleLogout = () => {
     store.isLoggedIn = false
     store.messages = []
