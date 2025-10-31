@@ -3,7 +3,7 @@ import { bufferToBase64 } from './helpers'
 import { encryptMessage, encryptMessageKey, generateMessageKey, deriveServerWrappedKey, generateServerChallenge } from './messageCrypto'
 import { signChallengeForServer } from './signature'
 
-export async function prepareUserKeyBundle(password) {
+export async function prepareUserKeyBundle(password: string) {
     const { publicKey, privateKey } = await generateKeyPair()
     const publicKeyBuffer = await crypto.subtle.exportKey(
         'spki',
@@ -48,4 +48,4 @@ export async function encryptMessageForSend(message: string, decryptedPrivateKey
         iv_wrap: iv
     }
 }
-export async function decryptMessageOnReceive(encryptedMessage: ArrayBuffer, encryptedKey: ArrayBuffer, userPassword: string): string
+// export async function decryptMessageOnReceive(encryptedMessage: ArrayBuffer, encryptedKey: ArrayBuffer, userPassword: string): string

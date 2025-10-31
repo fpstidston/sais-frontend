@@ -20,14 +20,15 @@ export async function decryptPrivateKeyBuffer(
 ): Promise<ArrayBuffer> {
     const encryptedKeyBuffer = base64ToUint8Array(key)
     const ivBuffer = iv
-    return await crypto.subtle.decrypt(
+    const k = await crypto.subtle.decrypt(
         {
-        name: "AES-GCM",
-        iv: ivBuffer
+            name: "AES-GCM",
+            iv: ivBuffer
         }, 
         derivedKey, 
         encryptedKeyBuffer
     )
+    return k
 }
 
 export async function deriveKeyForDecryption(password: string, salt: Uint8Array) {
@@ -39,7 +40,7 @@ export async function deriveKeyForDecryption(password: string, salt: Uint8Array)
         false,
         ["deriveKey"]
     )
-    return await crypto.subtle.deriveKey(
+    const k = await crypto.subtle.deriveKey(
         {
             name: "PBKDF2",
             salt, 
@@ -51,6 +52,7 @@ export async function deriveKeyForDecryption(password: string, salt: Uint8Array)
         false,
         ["decrypt"]
     )
+    return k
 }
 
 export function base64encode(string: string) {

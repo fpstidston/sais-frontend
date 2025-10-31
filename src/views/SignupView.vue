@@ -38,11 +38,12 @@
 <template>
     <main>
         <form>
-            <h2>Create account</h2>
+            <h2>Create an account</h2>
             <div v-if="formBusy">
                 Please wait...
             </div>
             <template v-else>
+                <p>Save your conversations</p>
                 <input type="email" v-model="email" placeholder="Username"/>
                 <input type="password" v-model="password"  placeholder="Password"/>
                 <button @click="handleSignup">Create account</button>

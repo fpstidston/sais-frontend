@@ -19,6 +19,9 @@ main {
     margin: 3rem auto;
     max-width: 640px;
 }
+section {
+    padding: 0 2rem;
+}
 header {
     color: white;
     background: var(--accent-colour);

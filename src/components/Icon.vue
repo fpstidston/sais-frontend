@@ -28,4 +28,20 @@ i.shredder {
 i.cloud {
     background-image: url(../assets/cloud.svg);
 }
+i.chat {
+    background-image: url(../assets/chat.svg);
+    filter: invert(100%);
+}
+i.spinner {
+    background-image: url(../assets/spinner.svg);
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
 </style>

@@ -14,6 +14,10 @@ const email = defineModel('email', { required: true, default: '' })
 const password = defineModel('password', { required: true, default: '' })
 const formBusy = ref(false)
 const hasEnteredEmail = ref(false)
+let encryptedPrivateKeyB64
+let salt
+let iv
+let challenge
 
 const handleLogin = () => {
   if (!hasEnteredEmail.value) {
@@ -31,10 +35,10 @@ const handleLoginStart = () => {
     .then(response => {
       hasEnteredEmail.value = true
       store.publicKeyB64 = response.data.public_key
-      store.encryptedPrivateKeyB64 = response.data.encrypted_private_key
-      store.salt = base64ToUint8Array(response.data.salt)
-      store.iv = base64ToUint8Array(response.data.iv)
-      store.challenge = response.data.challenge
+      encryptedPrivateKeyB64 = response.data.encrypted_private_key
+      salt = base64ToUint8Array(response.data.salt)
+      iv = base64ToUint8Array(response.data.iv)
+      challenge = response.data.challenge
     })
     .catch(err => {
       console.log('Error logging in', err)
@@ -46,18 +50,44 @@ const handleLoginStart = () => {
 
 const handleLoginFinish = async () => {
   formBusy.value = true
-  const signature = await signChallengeForLogin(store.challenge, store.encryptedPrivateKeyB64, password.value, store.salt, store.iv)
+  let signature
+  try {
+    signature = await signChallengeForLogin(
+      challenge,
+      encryptedPrivateKeyB64,
+      password.value,
+      salt,
+      iv
+    )
+  } catch (err) {
+    console.log("Error signing challenge", err)
+    formBusy.value = false
+    return
+  }
   axios.post(store.baseURL + '/user/verify-login', {
     username: email.value,
     signature: bufferToBase64(signature),
-    challenge: store.challenge
+    challenge: challenge
   }, { withCredentials: true })
     .then(async response => {
       if (response.data.logged_in == true) {
         store.isLoggedIn = true
-        store.serverPublicKeyB64 = response.data.server_public_key
-        store.decryptedPrivateKeyForSigning = await decryptPrivateKeyForSigning(store.encryptedPrivateKeyB64, password.value, store.salt, store.iv)
-        store.decryptedPrivateKeyForMessaging = await decryptPrivateKeyForMessage(store.encryptedPrivateKeyB64, password.value, store.salt, store.iv)
+        store.clearMessages()
+        localStorage.setItem('isLoggedIn', 'true')
+        localStorage.setItem("loggedInUsername", email.value)
+        localStorage.setItem("loggedInPassword", password.value)
+        store.decryptedPrivateKeyForSigning = await decryptPrivateKeyForSigning(
+          encryptedPrivateKeyB64,
+          password.value,
+          salt,
+          iv
+        )
+        store.decryptedPrivateKeyForMessaging = await decryptPrivateKeyForMessage(
+          encryptedPrivateKeyB64,
+          password.value,
+          salt,
+          iv
+        )
         router.push({ name: 'chat' })
       } else {
         console.log('Error logging in')
@@ -81,6 +111,7 @@ const handleLoginFinish = async () => {
         Please wait...
       </div>
       <template v-else>
+        <p v-if="!hasEnteredEmail">Access your past conversations</p>
         <input type="email" v-if="!hasEnteredEmail" v-model="email" placeholder="Username"/>
         <input type="password" v-if="hasEnteredEmail" v-model="password" placeholder="Password"/>
         <button @click="handleLogin">Continue</button>

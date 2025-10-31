@@ -2,9 +2,12 @@
 import Icon from '../components/Icon.vue';
 </script>
 <template>
-    <section id="about">
+    <main id="about">
         <div class="wrapper">
             <h2>About</h2>
+            <p class="lead">
+                This is a minimal demo of a private chatbot inspired by <a target="_blank" href="https://lumo.proton.me/">Proton Lumo</a> to learn about web security, VPS hosting, serving LLMs.
+            </p>
             <p>External links</p>
             <p></p>
             <ul>
@@ -14,7 +17,7 @@ import Icon from '../components/Icon.vue';
                     </a>
                 </li>
                 <li class="">
-                    <a target="_blank" href="https://github.com/fpstidston">
+                    <a target="_blank" href="https://katapult.io/">
                         Cloud provider
                     </a>
                 </li>
@@ -23,28 +26,28 @@ import Icon from '../components/Icon.vue';
             <ul>
                 <li class="">
                     <a href="#policy">
-                        Confidentiality policy
+                        Confidential use
                     </a>
                 </li>
                 <li class="">
                     <a href="#encryption">
-                        Strong encryption
+                        Encryption measures
                     </a>
                 </li>
             </ul>
             <h3 id="policy">
                 <span>
-                    <Icon size=48 name="shredder"/>
-                    Confidentiality policy
+                    <Icon size=32 name="shredder"/>
+                    Confidential use
                 </span>
             </h3>
             <p>
-                In use cases such as personal, financial or health information, your conversations musn’t be seen, shared, or used to build a profile about you or anyone else. This page can't share your conversations with anyone, including advertisers and governments. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your data to train.
+                AI assistants, including Google Gemini, allow employees to read conversations and train the language models with your data. In cases such as personal, financial or health information, conversations musn’t be seen, shared, or used to build a profile about you or anyone else. This demonstration can't share your messages with anyone, including advertisers and governments. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your messages to train.
             </p>
             <h3 id="encryption">
                 <span>
-                    <Icon size=48 name="lock"/>
-                    Strong encyption
+                    <Icon size=32 name="lock"/>
+                    Encyption measures
                 </span>
             </h3>
             <h4>Account and sign in</h4>
@@ -130,27 +133,22 @@ import Icon from '../components/Icon.vue';
                 <li>(Incomplete) Meta data is removed</li> -->
             </ul>
         </div>
-    </section>
+    </main>
   </template>
 
 <style scoped>
-h2 {
-    margin: 3rem 0 2rem;
-    font-size: 32px;
-}
-h3 {
-    font-size: 26px;
+h2, h3 {
     margin: 3rem 0 2rem;
 }
-span, 
-a {
+h3 span, 
+h3 a {
     display: flex;
     align-items: center;
 }
 i {
  margin-right: 10px;   
 }
-section {
-    padding-bottom: 120px;
+main {
+    padding-bottom: 3rem;
 }
 </style>

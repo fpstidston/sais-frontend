@@ -25,7 +25,7 @@ export async function signChallengeForServer(
     decryptedPrivateKey: CryptoKey
 ): Promise<{ signature: ArrayBuffer, challengeAndKeyString: string }> {
     const challengePayload = {
-        challenge //un-nest this later on front and back end
+        challenge //TODO: un-nest this later on front and backend
     }
     const challengeString = JSON.stringify(challengePayload)
     const challengeBytes = encodeUTF8(challengeString)
