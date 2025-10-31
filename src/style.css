@@ -1,27 +1,27 @@
- body {
+:root {
+    --accent-colour: #004BCE;
+    --secondary-colour: #5f99ff
+
+}
+body {
     margin: 0;
     padding: 0;
-    font: 14px/1.5 system-ui, 'Helvetica Neue', Arial, sans-serif;
+    font: 16px/1.5 system-ui, 'Helvetica Neue', Arial, sans-serif;
     color: #222;
 }
 header .hero,
-.wrapper,
-section aside {
-    max-width: 520px;
+.wrapper {
+    max-width: 640px;
     margin: 0 auto;
 }
-.wrapper,
-section aside,
 main {
     padding: 0 2rem;
-}
-main {
     margin: 3rem auto;
-    max-width: 520px;
+    max-width: 640px;
 }
 header {
     color: white;
-    background: #004BCE;
+    background: var(--accent-colour);
 }
 header .hero {
     padding: 3rem 2rem;
@@ -39,3 +39,20 @@ aside {
 a {
   cursor: pointer;
 }
+button, input, textarea {
+    padding: 0.5rem 1rem;
+    font-family: inherit;
+    border: none;
+    font-size: 16px;
+}
+button {
+    background-color: var(--accent-colour);
+    color: white;
+    font-weight: bold;
+}
+input {
+    border: 1px solid #0008
+}
+/* * {
+    outline: 1px solid #0002;
+} */
