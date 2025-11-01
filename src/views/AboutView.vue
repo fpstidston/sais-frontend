@@ -12,7 +12,7 @@ import Icon from '../components/Icon.vue';
             <p></p>
             <ul>
                 <li class="">
-                    <a target="_blank" href="https://github.com/fpstidston">
+                    <a target="_blank" href="https://github.com/fpstidston/sais-frontend">
                         Code repository
                     </a>
                 </li>

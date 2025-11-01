@@ -212,7 +212,7 @@ onUnmounted(() => {
             <GridBlock>
                 <Icon name="code"/>
                 <p>Experimental prototype</p>
-                <a target="_blank" href="https://github.com/fpstidston">View code</a>
+                <a target="_blank" href="https://github.com/fpstidston/sais-frontend">View code</a>
             </GridBlock>
             <GridBlock>
                 <Icon name="lock"/>
