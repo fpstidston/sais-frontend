@@ -8,6 +8,7 @@ import { base64ToUint8Array, bufferToBase64 } from '../utils/helpers'
 import { signChallengeForLogin } from '../utils/signature'
 import { decryptPrivateKeyForSigning, decryptPrivateKeyForMessage } from '../utils/keyManager'
 
+const abortController = new AbortController()
 const store = useStateStore()
 const router = useRouter()
 
@@ -19,10 +20,14 @@ onMounted(async () => {
     const username = localStorage.getItem("loggedInUsername")
     const password = localStorage.getItem("loggedInPassword")
     try {
+        let timeout = setTimeout(() => {
+            abortController.abort()
+        }, 4000)
         const response = await axios.post(store.baseURL + '/key/get-public',
             { username },
-            { withCredentials: true }
+            { withCredentials: true, signal: abortController.signal }
         )
+        clearTimeout(timeout)
         store.publicKeyB64 = response.data.public_key
         encryptedPrivateKeyB64 = response.data.encrypted_private_key
         salt = base64ToUint8Array(response.data.salt)
@@ -71,6 +76,8 @@ onMounted(async () => {
             router.push({ name: 'chat'})
         } else {
             console.log('Error logging in')
+            router.push({ name: 'signin'})
+            return
         }
     } catch (err) {
         console.log("Error verifying sign-in", err)
