@@ -37,16 +37,16 @@ import Icon from '../components/Icon.vue';
             </ul>
             <h3 id="policy">
                 <span>
-                    <Icon size=32 name="shredder"/>
+                    <Icon :size=32 name="shredder"/>
                     Confidential use
                 </span>
             </h3>
             <p>
-                AI assistants, including Google Gemini, allow employees to read conversations and train the language models with your data. In cases such as personal, financial or health information, conversations musn’t be seen, shared, or used to build a profile about you or anyone else. This demonstration can't share your messages with anyone, including advertisers and governments. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your messages to train.
+                AI assistants, including Google Gemini, allow employees to read conversations and train the language models with your data. In cases such as personal, financial or health information, conversations musn’t be seen, shared, or used to build a profile about you or anyone else. This demonstration can't read your messages or share them with anyone, including advertisers and governments. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your messages to train.
             </p>
             <h3 id="encryption">
                 <span>
-                    <Icon size=32 name="lock"/>
+                    <Icon :size=32 name="lock"/>
                     Encyption measures
                 </span>
             </h3>
@@ -150,5 +150,8 @@ i {
 }
 main {
     padding-bottom: 3rem;
+}
+p.lead {
+    font-size: 21px;
 }
 </style>

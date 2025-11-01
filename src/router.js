@@ -26,6 +26,12 @@ const router = createRouter({
             name: 'about',
             component: () => import('./views/AboutView.vue'),
             meta: { requiresAuth: false } 
+        },
+         {
+            path: '/auto-signin',
+            name: 'autosignin',
+            component: () => import('./views/AutoSignInView.vue'),
+            meta: { requiresAuth: false } 
         }
     ],
     scrollBehavior (to, from, savedPosition) {

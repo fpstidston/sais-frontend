@@ -107,14 +107,15 @@ const handleLoginFinish = async () => {
   <main>
     <form>
       <h2>{{ !hasEnteredEmail ? 'Sign in' : 'Password'}}</h2>
-      <div v-if="formBusy">
-        Please wait...
+      <div class="wait" v-if="formBusy">
+        <Icon name="spinner" :size=16 />Please wait...
       </div>
       <template v-else>
-        <p v-if="!hasEnteredEmail">Access your past conversations</p>
-        <input type="email" v-if="!hasEnteredEmail" v-model="email" placeholder="Username"/>
+        <p v-if="!hasEnteredEmail">Access your past conversations.</p>
+        <input type="text" v-if="!hasEnteredEmail" v-model="email" placeholder="Username"/>
         <input type="password" v-if="hasEnteredEmail" v-model="password" placeholder="Password"/>
         <button @click="handleLogin">Continue</button>
+        <p class="note">Signing in will clear any locally-stored anonymous messages</p>
         <p><router-link :to="{ name: 'signup'}"><strong>Create an account</strong></router-link></p>
       </template>
     </form>
@@ -128,5 +129,8 @@ form {
   flex-direction: column;
   max-width: 300px;
   gap: 20px
+}
+.note {
+  font-size: 13px;
 }
 </style>
