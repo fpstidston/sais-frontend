@@ -37,6 +37,9 @@ const suggestions = [
 const conversation = computed({
     get() {
         return [...store.messages].sort((a, b) => {
+            if (Object.hasOwn(a, 'order') && Object.hasOwn(b, 'order')) {
+                return b.order - a.order
+            }
             return new Date(b.datetime) - new Date(a.datetime)
         })
     }
