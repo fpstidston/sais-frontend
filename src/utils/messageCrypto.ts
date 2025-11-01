@@ -59,7 +59,6 @@ export async function encryptMessageKey(
     return encryptedKey
 }
 export async function decryptMessageKey(encryptedKey: ArrayBuffer, privateKey: CryptoKey): Promise<CryptoKey> {
-    // debugger
     const aesKeyRaw = await crypto.subtle.decrypt(
         {
             name: "RSA-OAEP"
