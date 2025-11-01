@@ -33,11 +33,11 @@ const props = defineProps(['data'])
     display: inline-block;
 }
 .message.user .body {
-    background-color: #eee;
+    background-color: var(--light-grey);
 }
 .message.bot .body {
     background-color: white;
-    border: 1px solid #0002;
+    border: 1px solid var(--border-tint);
 }
 .message.loading {
     display: flex;

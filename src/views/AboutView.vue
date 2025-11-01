@@ -146,7 +146,7 @@ h3 a {
     align-items: center;
 }
 i {
- margin-right: 10px;   
+    margin-right: 10px;   
 }
 main {
     padding-bottom: 3rem;

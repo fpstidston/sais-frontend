@@ -8,7 +8,3 @@ const route = useRoute()
   <HeaderBar />
   <router-view :key="route.fullPath"></router-view>
 </template>
-
-<style scoped>
-
-</style>

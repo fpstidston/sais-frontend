@@ -10,17 +10,17 @@ import { useRouter } from 'vue-router';
 
 const router = useRouter()
 const store = useStateStore()
-const email = defineModel('email', { required: true, default: '' })
+const username = defineModel('username', { required: true, default: '' })
 const password = defineModel('password', { required: true, default: '' })
 const formBusy = ref(false)
-const hasEnteredEmail = ref(false)
+const hasEnteredUsername = ref(false)
 let encryptedPrivateKeyB64
 let salt
 let iv
 let challenge
 
 const handleLogin = () => {
-  if (!hasEnteredEmail.value) {
+  if (!hasEnteredUsername.value) {
     handleLoginStart()
   } else {
     handleLoginFinish()
@@ -30,10 +30,10 @@ const handleLogin = () => {
 const handleLoginStart = () => {
   formBusy.value = true
   axios.post(store.baseURL + '/key/get-public', {
-    username: email.value,
+    username: username.value,
   }, { withCredentials: true })
     .then(response => {
-      hasEnteredEmail.value = true
+      hasEnteredUsername.value = true
       store.publicKeyB64 = response.data.public_key
       encryptedPrivateKeyB64 = response.data.encrypted_private_key
       salt = base64ToUint8Array(response.data.salt)
@@ -65,7 +65,7 @@ const handleLoginFinish = async () => {
     return
   }
   axios.post(store.baseURL + '/user/verify-login', {
-    username: email.value,
+    username: username.value,
     signature: bufferToBase64(signature),
     challenge: challenge
   }, { withCredentials: true })
@@ -74,7 +74,7 @@ const handleLoginFinish = async () => {
         store.isLoggedIn = true
         store.clearMessages()
         localStorage.setItem('isLoggedIn', 'true')
-        localStorage.setItem("loggedInUsername", email.value)
+        localStorage.setItem("loggedInUsername", username.value)
         localStorage.setItem("loggedInPassword", password.value)
         store.decryptedPrivateKeyForSigning = await decryptPrivateKeyForSigning(
           encryptedPrivateKeyB64,
@@ -105,26 +105,23 @@ const handleLoginFinish = async () => {
 
 <template>
   <main>
-    <form>
-      <h2>{{ !hasEnteredEmail ? 'Sign in' : 'Password'}}</h2>
-      <div class="wait" v-if="formBusy">
-        <Icon name="spinner" :size=16 />Please wait...
-      </div>
-      <template v-else>
-        <p v-if="!hasEnteredEmail">Access your past conversations.</p>
-        <input type="text" v-if="!hasEnteredEmail" v-model="email" placeholder="Username"/>
-        <input type="password" v-if="hasEnteredEmail" v-model="password" placeholder="Password"/>
-        <button @click="handleLogin">Continue</button>
-        <p class="note">Signing in will clear any locally-stored anonymous messages</p>
-        <p><router-link :to="{ name: 'signup'}"><strong>Create an account</strong></router-link></p>
-      </template>
-    </form>
+    <h2>{{ !hasEnteredUsername ? 'Sign in' : 'Password'}}</h2>
+    <div class="wait" v-if="formBusy">
+      <Icon name="spinner" :size=16 />Please wait...
+    </div>
+    <template v-else>
+      <p v-if="!hasEnteredUsername">Access your past conversations</p>
+      <input type="text" v-if="!hasEnteredUsername" v-model="text" placeholder="Username"/>
+      <input type="password" v-else v-model="password" placeholder="Password"/>
+      <button @click="handleLogin">Continue</button>
+      <p class="note">Signing in will clear locally-stored anonymous chat</p>
+      <p><router-link :to="{ name: 'signup'}"><strong>Create an account</strong></router-link></p>
+    </template>
   </main>
 </template>
 
 <style scoped>
-form {
-  margin: 0 auto;
+main {
   display: flex;
   flex-direction: column;
   max-width: 300px;

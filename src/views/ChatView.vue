@@ -34,7 +34,7 @@ const suggestions = [
 
 const conversation = computed({
     get() {
-        return store.messages.sort((a, b) => a.datetime - b.datetime ? 1 : - 1)
+        return [...store.messages].sort((a, b) => a.datetime - b.datetime ? -1 : 1)
     }
 })
 
@@ -50,7 +50,7 @@ const handleSuggestion = (prompt) => {
 }
 
 const handleScroll = () => {
-    if (window.scrollY >= 44) {
+    if (window.scrollY >= 54) {
         isPromptFloat.value = true
     } else {
         isPromptFloat.value = false
@@ -119,18 +119,19 @@ const handleSend = async () => {
   }
   axios.post(store.baseURL + '/message/create', params, { withCredentials: true })
     .then(async response => {
-      store.messages.push({
-        sender: 'You',
-        body: message.value,
-        datetime: new Date().toUTCString()
-      })
+        const time = new Date().getTime()
+        store.messages.push({
+            sender: 'You',
+            body: message.value,
+            datetime: new Date(time-10).toUTCString()
+        })
       message.value = ''
       const encrpytedReply = response.data.response
       const replies = await decryptMessages([encrpytedReply])
       store.messages.push({
         sender: 'Server',
         body: replies[0].body,
-        datetime: new Date().toUTCString()
+        datetime: new Date(time).toUTCString()
       })
       localStorage.setItem('messages', JSON.stringify(conversation.value))
       window.scrollTo(0 , 0)

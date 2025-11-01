@@ -7,17 +7,17 @@
 
     const router = useRouter()
     const store = useStateStore()
-    const email = defineModel('email', { required: true, default: '' })
-    const password = defineModel('password', { required: true, default: '' })
+    const username = defineModel('username', { required: true })
+    const password = defineModel('password', { required: true })
     const formBusy = ref(false)
 
     const handleSignup = async () => {
-        if (!email.value) return
+        if (!username.value) return
         if (!password.value) return
         formBusy.value = true
         const { publicKey, encryptedPrivateKey, salt, iv } = await prepareUserKeyBundle(password.value)
         axios.post(store.baseURL + '/user/create', {
-            username: email.value,
+            username: username.value,
             public_key: publicKey,
             encrypted_private_key: encryptedPrivateKey,
             salt,
@@ -37,28 +37,29 @@
 
 <template>
     <main>
-        <form>
-            <h2>Create an account</h2>
-            <div v-if="formBusy">
-                Please wait...
-            </div>
-            <template v-else>
-                <p>Save your conversations</p>
-                <input type="email" v-model="email" placeholder="Username"/>
-                <input type="password" v-model="password"  placeholder="Password"/>
-                <button @click="handleSignup">Create account</button>
-                <p><router-link :to="{ name: 'signin' }"><strong>Sign in to an account</strong></router-link></p>
-            </template>
-        </form>
+        <h2>Create an account</h2>
+        <div v-if="formBusy">
+            Please wait...
+        </div>
+        <template v-else>
+            <p>Save your conversations</p>
+            <input type="text" v-model="username" placeholder="Username"/>
+            <input type="password" v-model="password"  placeholder="Password"/>
+            <button @click="handleSignup">Create account</button>
+            <p>
+                <router-link :to="{ name: 'signin' }">
+                    <strong>Sign in to an account</strong>
+                </router-link>
+            </p>
+        </template>
     </main>
 </template>
 
 <style scoped>
-form {
-    margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  max-width: 300px;
-  gap: 20px
+main {
+    display: flex;
+    flex-direction: column;
+    max-width: 300px;
+    gap: 20px
 }
 </style>
