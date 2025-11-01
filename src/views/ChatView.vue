@@ -14,6 +14,8 @@ import GridBlock from '../components/GridBlock.vue';
 import LandingGrid from '../components/LandingGrid.vue';
 import Message from '../components/Message.vue';
 
+const abortController = new AbortController()
+const streamReply = ref({})
 const router = useRouter()
 const store = useStateStore()
 const message = defineModel('message')
@@ -119,30 +121,74 @@ const handleSend = async () => {
   if (!store.isLoggedIn) {
     params.anon_session = true
   }
-  axios.post(store.baseURL + '/message/create', params, { withCredentials: true })
+  fetch(store.baseURL + '/message/create-stream',
+   {
+    method: 'POST',
+    body: JSON.stringify(params),
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    credentials: 'include',
+    signal: abortController.signal
+   })
     .then(async response => {
+        isResponding.value = false
+        
         const time = new Date().getTime()
         store.messages.push({
             sender: 'You',
             body: message.value,
             datetime: new Date(time-1000).toUTCString()
         })
-      message.value = ''
-      const encrpytedReply = response.data.response
-      const replies = await decryptMessages([encrpytedReply])
-      store.messages.push({
-        sender: 'Server',
-        body: replies[0].body,
-        datetime: new Date(time).toUTCString()
-      })
-      localStorage.setItem('messages', JSON.stringify(conversation.value))
-      window.scrollTo(0 , 0)
+        message.value = ''
+        window.scrollTo(0 , 0)
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder('utf-8')
+        let buffer = ''
+
+        streamReply.value = {
+            sender: 'Server',
+            body: '',
+            datetime: new Date(time).toUTCString()
+        }
+
+        store.messages.push(streamReply.value)
+
+        while (true) {
+            const { value, done } = await reader.read()
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            
+            const lines = buffer.split('\n')
+            buffer = lines.pop()
+
+            for (const line of lines) {
+                if (!line.trim()) continue
+
+                try {
+                    const payload = JSON.parse(line)
+                    const decrypted = await decryptUserMessage(
+                        payload.encrypted_body,
+                        payload.wrapped_key_client,
+                        payload.iv,
+                        store.decryptedPrivateKeyForMessaging
+                    )
+                    streamReply.value.body += decrypted
+                    localStorage.setItem('messages', JSON.stringify(conversation.value))
+                } catch (err) {
+                    console.log('Error streaming chunk', err)
+                }
+            }
+        }
+        streamReply.value = null
     })
     .catch(err => {
-      console.log('Error sending message', err)
+        console.log('Error sending message', err)
     })
     .finally(() => {
-      isResponding.value = false
+        isResponding.value = false
     })
 }
 
@@ -176,6 +222,7 @@ onMounted(async () => {
     isLoading.value = true
     axios.get(store.baseURL + '/message/list', { withCredentials: true })
         .then(async response => {
+            
             store.clearMessages()
             store.messages = await decryptMessages(response.data.messages)
             window.scrollTo(0, 0)
@@ -190,6 +237,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
     window.removeEventListener('scroll', handleScroll)
+    abortController.abort()
 })
 
 </script>
