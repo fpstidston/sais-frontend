@@ -24,7 +24,7 @@ const isPromptFloat = ref(false)
 const suggestions = [
     {
         short: 'About this chatbot',
-        long: 'Explain the differences between this chatbot service and other chatbot services, and describe the technical specifications'
+        long: 'Explain the differences between this chatbot demo and other chatbot services, and describe the technical specifications'
     },
     {
         short: 'Write a scary story',
@@ -34,7 +34,7 @@ const suggestions = [
 
 const conversation = computed({
     get() {
-        return [...store.messages].sort((a, b) => a.datetime - b.datetime ? -1 : 1)
+        return [...store.messages].sort((a, b) => a.datetime - b.datetime ? 1 : -1)
     }
 })
 
