@@ -6,7 +6,7 @@ import Icon from '../components/Icon.vue';
         <div class="wrapper">
             <h2>About</h2>
             <p class="lead">
-                This is a minimal demo of a private chatbot inspired by <a target="_blank" href="https://lumo.proton.me/">Proton Lumo</a> to learn about web security, VPS hosting, serving LLMs.
+                This is a minimal demo of a private chatbot inspired by <a target="_blank" href="https://lumo.proton.me/">Proton Lumo</a> to learn about web security, VPS hosting and serving an LLM.
             </p>
             <p>External links</p>
             <p></p>
@@ -41,8 +41,8 @@ import Icon from '../components/Icon.vue';
                     Confidential use
                 </span>
             </h3>
-            <p>
-                AI assistants, including Google Gemini, allow employees to read conversations and train the language models with your data. In cases such as personal, financial or health information, conversations musn’t be seen, shared, or used to build a profile about you or anyone else. This demonstration can't read your messages or share them with anyone, including advertisers and governments. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your messages to train.
+            <p>Warning: I have no background in web security architectures.</p>
+            <p>AI assistants, including Google Gemini, allow employees to read conversations and train the language models with your data. In cases such as personal, financial or health information, conversations musn't be seen, shared, or used to build a profile about you or anyone else. This demonstration is designed not carry your messages in a readable way, so that they can't be accessed by other people, even the people running the service. Furthermore, this service generates replies on the server using a ‘frozen’ language model to infer replies, it does not use your messages to train.
             </p>
             <h3 id="encryption">
                 <span>
@@ -50,6 +50,7 @@ import Icon from '../components/Icon.vue';
                     Encyption measures
                 </span>
             </h3>
+            <p>Some these steps are well worn while other parts are more unusual.</p>
             <h4>Account and sign in</h4>
             <p>Server has zero-knowledge of user password</p>
             <ol>

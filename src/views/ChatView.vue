@@ -34,7 +34,9 @@ const suggestions = [
 
 const conversation = computed({
     get() {
-        return [...store.messages].sort((a, b) => a.datetime - b.datetime ? 1 : -1)
+        return [...store.messages].sort((a, b) => {
+            return new Date(b.datetime) - new Date(a.datetime)
+        })
     }
 })
 
@@ -50,7 +52,7 @@ const handleSuggestion = (prompt) => {
 }
 
 const handleScroll = () => {
-    if (window.scrollY >= 54) {
+    if (window.scrollY >= 44) {
         isPromptFloat.value = true
     } else {
         isPromptFloat.value = false
@@ -123,7 +125,7 @@ const handleSend = async () => {
         store.messages.push({
             sender: 'You',
             body: message.value,
-            datetime: new Date(time-10).toUTCString()
+            datetime: new Date(time-1000).toUTCString()
         })
       message.value = ''
       const encrpytedReply = response.data.response

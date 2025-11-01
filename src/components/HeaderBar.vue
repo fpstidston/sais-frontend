@@ -20,7 +20,9 @@ const handleLogout = () => {
 <template>
     <header>
         <div class="wrapper">
-            <h1><router-link :to="{ name: 'chat' }"><Icon name="chat" :size="21" />Private chatbot</router-link></h1>
+            <router-link :to="{ name: 'chat' }">
+                <h1><Icon name="chat" :size="21" />Private chatbot</h1>
+            </router-link>
             <div class="items">
                 <router-link :to="{ name: 'about' }">About</router-link>
                 <router-link :to="{ name: 'signin' }" v-if="!store.isLoggedIn">Sign in</router-link>
@@ -42,7 +44,8 @@ header {
     align-items: center;
 }
 h1 {
-
+    display: flex;
+    align-items: center;
     margin: 0;
     font-size: 16px;
     cursor: pointer;
@@ -51,8 +54,6 @@ i {
     margin-right: 10px;
 }
 a, span {
-    display: inline-flex;
-    align-items: center;
     color: inherit;
     font-size: 16px;
     font-weight: bold;
